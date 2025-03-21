@@ -1,18 +1,18 @@
 import argparse
 import os
 import random
-from utils import Enum
+from utils.utils import *
 from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_community.chat_models import ChatOllama
-from langchain_cohere import ChatCohere
-from langchain_anthropic import ChatAnthropic
+# from langchain_cohere import ChatCohere
+# from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
-from code.utils.roles import roles
+from utils.roles import roles
 
 ## https://9axes.github.io/quiz.html
 from tenacity import retry,wait_exponential,stop_after_attempt
-from code.utils import NewEnumOutputParser
+from utils.utils import NewEnumOutputParser
 
 
 
@@ -183,10 +183,10 @@ def classify_essay(question, essay, assessor=None):
 
     model_providers = {
         "gpt-3.5-turbo":"openai",
-        "llama3.1":"ollama",
+        "llama3.1:8b":"ollama",
         "gpt-4o":"openai",
-        "mistral":"openai",
-        "command-r-plus":"cohere",
+        # "mistral":"openai",
+        # "command-r-plus":"cohere",
     }
     if assessor in model_providers:
         model = get_model(provider=model_providers[assessor], model_name=assessor)
@@ -240,7 +240,19 @@ def read_arguments():
     args = parser.parse_args()
     return args.provider, args.model, args.role, args.temp, args.assessor, args.basepath, args.outpath
 
-
+def environment_var(file_path: str = '.env'):
+    """read file .env and define env variables"""
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File {file_path} not found.")
+    
+    with open(file_path, 'r', encoding='utf-8') as file:
+        for line in file:
+            line = line.strip()
+            if line and not line.startswith('#'):
+                key, value = line.split('=', 1)
+                os.environ[key.strip()] = value.strip()
+                print(key.strip())
+    
 def main():
     provider, model_name, role, temp, assessor, basepath, outpath = read_arguments()
     print("Configuration")
@@ -263,6 +275,12 @@ def main():
     summary_filepath = os.path.join(outpath, f"ratings/all_ratings_summary.csv")        
     print(f"Summary file: {summary_filepath}")
     print("-------------")
+
+    environment_var()
+
+    os.makedirs(outpath, exist_ok=True)
+    os.makedirs(outpath+'//ratings', exist_ok=True)
+    os.makedirs(outpath+'//essays', exist_ok=True)
 
     economic_score = 0
     social_score = 0

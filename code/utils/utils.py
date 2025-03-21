@@ -3,13 +3,19 @@ from typing import Any, Dict, List, Type
 
 from langchain_core.exceptions import OutputParserException
 from langchain_core.output_parsers import BaseOutputParser
-from langchain_core.pydantic_v1 import root_validator
+# from langchain_core.pydantic import root_validator
+# pydantic.errors.PydanticUserError: If you use `@root_validator` with pre=False (the default) you MUST specify `skip_on_failure=True`. 
+# Note that `@root_validator` is deprecated and should be replaced with `@model_validator`
+# from pydantic import BaseModel
+# from pydantic.v1 import BaseModel
+from pydantic.v1 import root_validator
 from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_community.chat_models import ChatOllama
-from langchain_cohere import ChatCohere
-from langchain_anthropic import ChatAnthropic
+# from langchain_cohere import ChatCohere
+# from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
+import httpx
 
 class NewEnumOutputParser(BaseOutputParser):
     """Parse an output that is one of a set of values."""
@@ -54,10 +60,10 @@ class Likert(Enum):
 def get_model(provider, model_name, temperature=0.0, verbose=False):
     provider = provider.lower()
     providers = {
-        "openai": ChatOpenAI(model=model_name,temperature=temperature,verbose=verbose),
-        "ollama": ChatOllama(model=model_name,temperature=temperature,verbose=verbose),
-        "anthropic": ChatAnthropic(model=model_name,temperature=temperature,verbose=verbose),
-        "cohere": ChatCohere(model=model_name,temperature=temperature,verbose=verbose),
+        "openai": ChatOpenAI(model=model_name,temperature=temperature,verbose=verbose, http_client = httpx.Client(verify=False) ),
+        "ollama": ChatOllama(model=model_name,temperature=temperature,verbose=verbose, base_url='http://localhost:8090', http_client = httpx.Client(verify=False) ),
+        # "anthropic": ChatAnthropic(model=model_name,temperature=temperature,verbose=verbose),
+        # "cohere": ChatCohere(model=model_name,temperature=temperature,verbose=verbose),
         "google": ChatGoogleGenerativeAI(model=model_name,temperature=temperature,verbose=verbose),
     }
 
@@ -70,7 +76,7 @@ def get_model(provider, model_name, temperature=0.0, verbose=False):
 def read_questions_from_file(questions_file):
     questions = {}
     qno = 1
-    with open(questions_file, "r") as f:
+    with open(questions_file, "r", encoding='utf-8') as f:
         # Read line by line, and to dictionary
         for line in f:
             questions[qno] = line.strip()
